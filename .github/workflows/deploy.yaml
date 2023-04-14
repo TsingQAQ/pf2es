@@ -1,0 +1,56 @@
+# Copyright 2020 The Trieste Contributors
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+on:
+  workflow_dispatch:
+  push:
+    tags: v[0-9]+.[0-9]+.[0-9]+*
+
+jobs:
+  docs:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - uses: actions/checkout@v2
+      with:
+        ref: gh-pages-history
+        path: gh-pages-history
+    - uses: actions/setup-python@v2
+      with:
+        python-version: 3.7
+    - run: |
+        pip install --upgrade pip
+        pip install .[qhsri] -r notebooks/requirements.txt -c notebooks/constraints.txt
+        pip install -r docs/requirements.txt -c docs/constraints.txt
+        TEMP_DEB="$(mktemp)" &&
+        wget -O "$TEMP_DEB" 'https://github.com/jgm/pandoc/releases/download/2.10.1/pandoc-2.10.1-1-amd64.deb' &&
+        sudo dpkg -i "$TEMP_DEB"
+        rm -f "$TEMP_DEB"
+    - run: |
+        (cd docs ; make html ; make html)
+        TMP_DIR=$(mktemp -d -p $(pwd))
+        VERSION=$(cat trieste/VERSION)
+        mv docs/_build/html $TMP_DIR/$VERSION
+        sed -e "s/\$VERSION/$VERSION/g" redirect.html > $TMP_DIR/index.html 
+        cp versions.json $TMP_DIR/
+        cd gh-pages-history
+        git rm -r --ignore-unmatch docs/$VERSION
+        rm -rf docs/$VERSION
+        mv -f $TMP_DIR/* docs/
+        rmdir $TMP_DIR
+        git add docs
+        git config --global user.email "none"
+        git config --global user.name "github-actions-bot"
+        git commit -m "build documentation for $VERSION"
+        git push
