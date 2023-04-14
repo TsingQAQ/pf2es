@@ -1,4 +1,4 @@
-# \{PF\}$^2$ES: A New Acquisition Function for Parallel Feasible Pareto Frontier Entropy Search
+# \{PF\} $^2$ ES: A New Acquisition Function for Parallel Feasible Pareto Frontier Entropy Search
 ![](PF2ES_VLMOP2.gif)
 
 ### Installation
